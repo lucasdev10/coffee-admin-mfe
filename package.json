@@ -26,6 +26,7 @@
     "@angular/router": "^21.1.0",
     "@ngrx/effects": "^21.0.1",
     "@ngrx/store": "^21.0.1",
+    "coffee-shared": "file:../coffee-shared-lib/dist/coffee-shared",
     "coffee-shared-lib": "file:../coffee-shared-lib",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
@@ -40,7 +41,7 @@
     "@types/mocha": "^10.0.10",
     "@vitest/coverage-v8": "^4.0.18",
     "jsdom": "^28.1.0",
-    "vitest": "^4.0.8",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
   }
 }
