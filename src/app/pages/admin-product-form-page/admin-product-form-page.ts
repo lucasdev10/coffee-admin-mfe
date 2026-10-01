@@ -15,15 +15,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-
-interface ICreateProductDto {
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  stock: number;
-  image: string;
-}
+import { ICreateProductDto, IUpdateProductDto } from '../../models/product.model';
+import { ProductRepository } from '../../repositories/product.repository';
 
 @Component({
   selector: 'app-admin-product-form-page',
@@ -46,12 +39,14 @@ export class AdminProductFormPageComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly productRepository = inject(ProductRepository);
 
   readonly isLoading = signal(false);
+  readonly error = signal<string | null>(null);
   readonly isEditMode = signal(false);
   readonly productId = signal<string | null>(null);
 
-  readonly categories = ['Electronics', 'Clothing', 'Food', 'Books', 'Other'];
+  readonly categories = ['Electronics', 'Clothing', 'Food', 'Books', 'Other', 'Coffee'];
 
   readonly productModel = signal<ICreateProductDto>({
     name: '',
@@ -80,35 +75,86 @@ export class AdminProductFormPageComponent {
 
   private loadProduct(id: string): void {
     this.isLoading.set(true);
+    this.error.set(null);
 
-    this.store
-      .select(() => ({}))
+    this.productRepository
+      .findById(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((product) => {
-        if (product) {
-          this.productModel.set(product as ICreateProductDto);
-        } else {
-          this.router.navigate(['/admin/products']);
-        }
-        this.isLoading.set(false);
+      .subscribe({
+        next: (product) => {
+          this.productModel.set({
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            price: product.price,
+            stock: product.stock,
+            image: product.image,
+          });
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          console.error('Error loading product:', err);
+          this.error.set('Failed to load product. Please try again.');
+          this.isLoading.set(false);
+          setTimeout(() => {
+            this.router.navigate(['/admin/products']);
+          }, 1500);
+        },
       });
   }
 
   onSubmit(): void {
+    if (!this.productModel()) {
+      this.error.set('Please fill in all required fields.');
+      return;
+    }
+
     this.isLoading.set(true);
+    this.error.set(null);
     const formValue = this.productModel();
 
     if (this.isEditMode() && this.productId()) {
-      // Update product through store
-    } else {
-      // Create product through store
-    }
+      // Update product
+      const updateDto: IUpdateProductDto = {
+        name: formValue.name,
+        description: formValue.description,
+        category: formValue.category,
+        price: formValue.price,
+        stock: formValue.stock,
+        image: formValue.image,
+      };
 
-    // Simulate save
-    setTimeout(() => {
-      this.isLoading.set(false);
-      this.router.navigate(['/admin/products']);
-    }, 1000);
+      this.productRepository
+        .update(this.productId()!, updateDto)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.router.navigate(['/admin/products']);
+          },
+          error: (err) => {
+            console.error('Error updating product:', err);
+            this.error.set('Failed to update product. Please try again.');
+            this.isLoading.set(false);
+          },
+        });
+    } else {
+      // Create product
+      this.productRepository
+        .create(formValue)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.router.navigate(['/admin/products']);
+          },
+          error: (err) => {
+            console.error('Error creating product:', err);
+            this.error.set('Failed to create product. Please try again.');
+            this.isLoading.set(false);
+          },
+        });
+    }
   }
 
   onCancel(): void {
