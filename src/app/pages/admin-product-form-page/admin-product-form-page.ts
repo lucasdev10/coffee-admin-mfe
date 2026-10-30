@@ -104,14 +104,16 @@ export class AdminProductFormPageComponent {
   }
 
   onSubmit(): void {
-    if (!this.productModel()) {
+    const formValue = this.productModel();
+
+    // Validate required fields
+    if (!formValue.name || !formValue.description || !formValue.category) {
       this.error.set('Please fill in all required fields.');
       return;
     }
 
     this.isLoading.set(true);
     this.error.set(null);
-    const formValue = this.productModel();
 
     if (this.isEditMode() && this.productId()) {
       // Update product
